@@ -1,0 +1,22 @@
+{
+    "name": "Waveshare 2.9\" ePaper module",
+    "author": "Bonny Rais",
+    "docs": "https://github.com/bonnyr/wokwi-ws29v2-custom-chip/blob/main/README.md",
+    "pins": [
+
+      "BUSY",
+      "RST",
+      "DC",
+      "CS",
+      "CLK",
+      "DIN",
+      "VCC",
+      "GND"
+    ],
+    "display": {
+      "width": 128,
+      "height": 296
+    },
+    "controls": [
+    ]
+  }
