@@ -1,0 +1,42 @@
+name: Build WS29v2 Custom Chip
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  # build:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - name: Build chip
+  #     uses: bonnyr/wokwi-chip-clang-action@main
+  #   - name: 'Upload Artifacts'
+  #     uses: actions/upload-artifact@v3
+  #     with:
+  #       name: chip
+  #       path: |
+  #         dist/chip.json
+  #         dist/chip.wasm
+
+  release:
+    name: Release
+    # needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      # - name: Download chip artifacts (published above)
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: chip
+      #     path: chip
+      - name: copy release
+        run: cd dist && zip -9 ../chip.zip chip.wasm chip.json
+        env:
+          ZIP_VERSION: ${{ github.ref_name }}
+      - name: Upload release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: chip.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generateReleaseNotes: true
