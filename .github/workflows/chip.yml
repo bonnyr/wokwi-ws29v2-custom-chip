@@ -31,7 +31,7 @@ jobs:
           name: chip
           path: chip
       - name: copy release
-        run: cd chip && zip -9 chip.zip chip.wasm chip.json
+        run: cd chip && zip -9 ../chip.zip chip.wasm chip.json
         env:
           ZIP_VERSION: ${{ github.ref_name }}
       - name: Upload release
