@@ -12,30 +12,14 @@ not react to changes or produce changes.
 
 | Pin | Name         | Used | Description                                            |
 | --- | ------------ | ---- | ------------------------------------------------------ |
-| 1 | NC | N | No connection and do not connect with other NC pins Keep Open
-| 2 | GDR | N | N-Channel MOSFET Gate Drive Control
-| 3 | RESE | N | Current Sense Input for the Control Loop
-| 4 | NC | | N | No connection and do not connect with other NC pins e Keep Open
-| 5 | VSH2 | N | This pin is Positive Source driving voltage
-| 6 | TSCL | N*| I2C Interface to digital temperature sensor Clock pin
-| 7 | TSDA | N*| I2C Interface to digital temperature sensor Date pin
-| 8 | BS1 | Y| Bus selection pin Note 1.5-5
-| 9 | BUSY | Y| Busy state output pin Note 1.5-4
-| 10 | RES | Y| # Reset Note 1.5-3
-| 11 | D/C# | Y | Data /Command control pin Note 1.5-2
-| 12 | CS | Y | # Chip Select input pin Note 1.5-1
-| 13 | SCL | Y | serial clock pin (SPI)
-| 14 | SDA | Y | serial data pin (SPI)
-| 15 | VDDIO | Y | Power for interface logic pins
-| 16 | VCI | Y | Power Supply pin for the chip
-| 17 | VSS | Y | Ground
-| 18 | VDD | Y | Core logic power pin
-| 19 | VPP | N* | Power Supply for OTP Programming
-| 20 | VSH1 | N* | This pin is Positive Source driving voltage
-| 21 | VGH | N* | This pin is Positive Gate driving voltage
-| 22 | VSL | N* | This pin is Negative Source driving voltage
-| 23 | VGL | N* | This pin is Negative Gate driving voltage
-| 24 | VCOM | N* | These pins are VCOM driving voltage
+| 1 | BUSY | Y| Busy state output pin Note 1.5-4
+| 2 | RST | Y| # Reset Note 1.5-3
+| 3 | DC | Y | Data /Command control pin Note 1.5-2
+| 4 | CS | Y | # Chip Select input pin Note 1.5-1
+| 5 | CLK | Y | serial clock pin (SPI)
+| 6 | DIN | Y | serial data pin (SPI)
+| 7 | VCC | Y | Power for interface logic pins
+| 8 | GND | Y | Ground
 
 
 
@@ -64,9 +48,7 @@ The chip defines a number of attributes that can aid in debugging operation when
 
 | Name         | Description                                            | Default value             |
 | ------------ | ------------------------------------------------------ | ------------------------- |
-| debug_timer   | (0 or 1) used to set the internal timer frequency such that a PWM cycle lasts ~1s. This is useful when needing to inspect the visual impact of PWM                   | "0"                 |
-| gen_debug | (0 or 1) when set to true, debug logs can be seen in the browser's developer tool window. This can be useful to confirm whether the operation of the program and chip is as expected | "0" |
-| spi_debug     | (0 or 1) enables debug log of the i2c communication exchange. This can be useful when debuggin i2c transactions      | "0"             |
+| debug   | (0 or 1) when set to true, debug logs can be seen in the browser's developer tool window. This can be useful to confirm whether the operation of the program and chip is as expected | "0" |
 
 ## Simulator examples
 
