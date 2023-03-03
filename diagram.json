@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "author": "Bonny Rais",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-mega", "id": "mega", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "chip-ws29v2",
+      "id": "chip",
+      "top": -354.67,
+      "left": 178,
+      "rotate": 270,
+      "attrs": { "debug": "1", "debug_mask": "130" }
+    },
+    {
+      "type": "wokwi-logic-analyzer",
+      "id": "logic1",
+      "top": -408.9,
+      "left": -57.41,
+      "attrs": { "triggerMode": "level", "triggerPin": "D7", "triggerLevel": "high" }
+    }
+  ],
+  "connections": [
+    [ "chip:VCC", "mega:5V", "red", [ "v-26.72", "h-139.15", "v365.99", "h207.13" ] ],
+    [ "chip:GND", "mega:GND.2", "black", [ "v-14.06", "h-116.88", "v343.34", "h204.21" ] ],
+    [ "chip:CLK", "mega:52", "orange", [ "v-54.05", "h348.32", "v461.98" ] ],
+    [ "chip:DIN", "mega:51", "blue", [ "v-42.05", "h345.26", "v440.48" ] ],
+    [ "chip:CS", "mega:10", "white", [ "h-0.34", "v46.65", "h45.46" ] ],
+    [ "chip:DC", "mega:9", "purple", [ "v63.99", "h64.59", "v65.48" ] ],
+    [ "chip:RST", "mega:8", "gray", [ "v29.32", "h83.82" ] ],
+    [ "chip:BUSY", "mega:7", "yellow", [ "h-53.54", "v79.99", "h159.96" ] ],
+    [ "mega:GND.1", "led:C", "black", [ "v0" ] ],
+    [ "logic1:D0", "chip:DIN", "blue", [ "h-92.55", "v111.83", "h252.74" ] ],
+    [ "logic1:D1", "chip:CLK", "orange", [ "h-68.55", "v90.23", "h238.34" ] ],
+    [ "logic1:D2", "chip:CS", "white", [ "h-59.89", "v306.63", "h229.68" ] ],
+    [ "logic1:D3", "chip:DC", "purple", [ "h-54.55", "v314.37", "h214.74" ] ],
+    [ "logic1:D4", "chip:RST", "gray", [ "h-47.89", "v271.43", "h198.48" ] ],
+    [ "logic1:D5", "chip:BUSY", "yellow", [ "h-54.55", "v314.37", "h214.74" ] ],
+    [ "logic1:D7", "mega:5V", "red", [ "h-7.22", "v537.97", "h229.13" ] ],
+    [ "logic1:GND", "mega:GND.3", "black", [ "h-28.55", "v420.37", "h269.71" ] ]
+  ]
+}

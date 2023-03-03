@@ -1,0 +1,8 @@
+[wokwi]
+version = 1
+elf = 'test/release/firmware.elf'
+firmware = 'test/release/firmware.hex'
+
+[[chip]]
+name = 'ws29v2'
+binary = 'dist/chip.wasm'

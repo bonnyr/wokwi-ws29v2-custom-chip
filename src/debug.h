@@ -14,15 +14,23 @@
 
 // --------------- Debug Macros -----------------------
 #ifdef DEBUG
-#define DBGF_SPI 0x01
-#define DBGF_I2C 0x02
-#define DBGF_TMR 0x04
+#define DBGF_PIN 0x01
+#define DBGF_SPI 0x02
+#define DBGF_I2C 0x04
+#define DBGF_TMR 0x08
 #define DBGF_GEN 0x80
 
-#define DBG_SPI_PFX "(spi): "
-#define DBG_I2C_PFX "(i2c): "
-#define DBG_TMR_PFX "(tmr): "
-#define DBG_GEN_PFX "(gen): "
+#define BIT_PFX "(bit): "
+#define SPI_PFX "(spi): "
+#define I2C_PFX "(i2c): "
+#define TMR_PFX "(tmr): "
+#define GEN_PFX "(gen): "
+
+#define ERRF(...)                                  \
+    {                                                \
+        printf("%lld *ERR* ", get_sim_nanos() / 1000); \
+        printf(__VA_ARGS__);                     \
+    }
 
 #define DEBUGF(...)                                  \
     {                                                \
@@ -32,30 +40,49 @@
         }                                            \
     }
 
+#define ERRF_PFX(pfx, ...)                   \
+    {                                                \
+        printf("%lld %s *ERR* ", get_sim_nanos() / 1000, pfx); \
+        printf(__VA_ARGS__);                     \
+    }
+
 #define DEBUGF_PFX(mask, pfx, ...)                   \
     {                                                \
-        if (chip->debug && (chip->debug_mask & mask)) {                           \
+        if (chip->debug && ((chip->debug_mask & (mask)) == (mask))) {                           \
             printf("%lld %s", get_sim_nanos() / 1000, pfx); \
             printf(__VA_ARGS__);                     \
         }                                            \
     }
 
 
-#define SPI_DEBUGF(...)   DEBUGF_PFX(DBGF_SPI, DBG_SPI_PFX, __VA_ARGS__);
-#define I2C_DEBUGF(...)   DEBUGF_PFX(DBGF_I2C, DBG_I2C_PFX, __VA_ARGS__);
-#define TMR_DEBUGF(...)   DEBUGF_PFX(DBGF_TMR, DBG_TMR_PFX, __VA_ARGS__);
-#define GEN_DEBUGF(...)   DEBUGF_PFX(DBGF_GEN, DBG_GEN_PFX, __VA_ARGS__);
+#define PIN_DEBUGF(...)   DEBUGF_PFX(DBGF_PIN, BIT_PFX, __VA_ARGS__);
+#define SPI_DEBUGF(...)   DEBUGF_PFX(DBGF_SPI, SPI_PFX, __VA_ARGS__);
+#define I2C_DEBUGF(...)   DEBUGF_PFX(DBGF_I2C, I2C_PFX, __VA_ARGS__);
+#define TMR_DEBUGF(...)   DEBUGF_PFX(DBGF_TMR, TMR_PFX, __VA_ARGS__);
+#define GEN_DEBUGF(...)   DEBUGF_PFX(DBGF_GEN, GEN_PFX, __VA_ARGS__);
+
+#define SPI_PIN_DEBUGF(...)   DEBUGF_PFX(DBGF_SPI|DBGF_PIN, SPI_PFX, __VA_ARGS__);
 
 
+#define SPI_ERRF(...)   ERRF_PFX(SPI_PFX, __VA_ARGS__);
+#define I2C_ERRF(...)   ERRF_PFX(I2C_PFX, __VA_ARGS__);
+#define TMR_ERRF(...)   ERRF_PFX(TMR_PFX, __VA_ARGS__);
+#define GEN_ERRF(...)   ERRF_PFX(GEN_PFX, __VA_ARGS__);
+
+#define DBG_BUFFER(m, p, l, w) {debugBuffer(m, p, l, w);}
 
 extern char buf[400];
-extern const char *debugHexStr(uint8_t *p, size_t c);
+const char *debugHexStr(uint8_t *p, size_t c);
+void debugBuffer(const char *m, uint8_t *p, size_t l, size_t w);
 
 #else
+    #define PIN_DEBUGF(...)   
     #define SPI_DEBUGF(...)   
     #define I2C_DEBUGF(...)   
     #define TMR_DEBUGF(...)   
     #define GEN_DEBUGF(...)   
+    #define SPI_PIN_DEBUGF(...)
+    #define DBG_BUFFER(p, l, w)
 
 #endif  //  DEBUG
 

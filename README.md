@@ -1,5 +1,5 @@
 
-# Waveshare 29" ePaper display Custom Chip 
+# Waveshare 2.9" ePaper display Custom Chip 
 
 - [todo - link to image](./ws29v2.png)
 - [chip data sheet](https://www.waveshare.com/w/upload/7/79/2.9inch-e-paper-v2-specification.pdf)

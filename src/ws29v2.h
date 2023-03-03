@@ -5,6 +5,8 @@
 
 #define DEBUG
 #include "debug.h"
+#include "hashmap.h"
+
 
 
 #define MAX_DATA_TXFER 8192
@@ -15,10 +17,22 @@ typedef enum {
     ST_SPI_DONE
 } spi_state_t;
 
+typedef enum {
+    AM_BLACK,
+    AM_WHITE,
+    AM_BW,
+    AM_INV_BW,
+    AM_RBW,
+    AM_INV_RBW,
+} activation_mode_t;
+
+
 typedef struct {
+    // attrs
     bool debug;
     uint8_t debug_mask;
 
+    // spi comms
     uint8_t cmd;
     uint16_t data_ndx;
     uint8_t buffer[1];
@@ -26,19 +40,17 @@ typedef struct {
     uint8_t mode;       // SPI mode depending on dc pin value
 
     // pins
-    pin_t rese;
-    pin_t bs1;
     pin_t busy;
     pin_t reset;
     pin_t dc;
     pin_t cs;
-    pin_t sck;
+    pin_t clk;
     pin_t sdi;
-    pin_t vci;
-    pin_t vss;
+    pin_t vcc;
 
     bool sleeping;      // are we in deep sleep. SPI disabled when on (!?)
 
+    // display variables
     uint8_t addr_incr_mode;
     uint16_t x_addr;
     uint16_t y_addr;
@@ -48,6 +60,18 @@ typedef struct {
 
     uint8_t disp_upd_seq;
 
+    // display RAM
+    uint8_t bw_ram[MAX_DATA_TXFER];
+    uint8_t red_ram[MAX_DATA_TXFER];
+
+    // activation
+    uint16_t act_ndx;
+    uint32_t *black;
+    uint32_t *white;
+
+    // otp buffer 
+    uint8_t otp[10];
+
     spi_dev_t spi;
     spi_state_t spi_state;
     bool txfer;
@@ -55,6 +79,7 @@ typedef struct {
     // timers
     timer_t timer;
     timer_t reset_timer;
+    timer_t activation_timer;
     uint64_t reset_time;
 
     // display
@@ -63,7 +88,20 @@ typedef struct {
     uint32_t height;
 
 
+
 } ws29v2_ctx_t;
+
+
+typedef void (*cmd_handler)(ws29v2_ctx_t *chip);
+typedef struct {
+    uint16_t cmd_key;
+    const char *cmd_name;
+    cmd_handler handler;
+} cmd_entry_t;
+typedef HASHMAP(uint16_t, cmd_entry_t) cmd_map_t;
+#define CMD_ENTRY(cmd, h) {cmd, #cmd, h}
+
+
 
 typedef enum {
     DA_CLK_EN,
@@ -82,6 +120,7 @@ typedef enum {
 
 // timer values
 #define RESET_PULSE_MS 10000
+#define ACTIVATION_STEP_PERIOD 500000
 
 // ADDR INCR modes
 #define ADDR_INCR_X_MASK 0x1
@@ -91,22 +130,14 @@ typedef enum {
 #define ADDR_INCR_MODE_POR 0x11 // incr addresses +ve and default to x axis
 
 // disp upd seq action
-
-#define DISP_SEQ_CLK_BIT        0x80
-
-#define DISP_UPDATE_SEQ_CLOCK_EN        0x80
-#define DISP_UPDATE_SEQ_CLOCK_DIS       0x01
-#define DISP_UPDATE_SEQ_CLOCK_EN_ANA    0xC0
-#define DISP_UPDATE_SEQ_CLOCK_DIS_ANA   0x03
-#define DISP_UPDATE_SEQ_CLOCK_EN    0x80
-#define DISP_UPDATE_SEQ_CLOCK_EN    0x80
-#define DISP_UPDATE_SEQ_CLOCK_EN    0x80
-#define DISP_UPDATE_SEQ_CLOCK_EN    0x80
-#define DISP_UPDATE_SEQ_CLOCK_EN    0x80
-#define DISP_UPDATE_SEQ_CLOCK_EN    0x80
-#define DISP_UPDATE_SEQ_CLOCK_EN    0x80
-
 #define DISP_UPDATE_SEQ_POR    0xFF
+
+
+// colour constants used when displaying the panel colours using the frame buffer
+#define FB_BLACK 0x000000FF
+#define FB_WHITE 0xFFFFFFFF
+#define FB_RED 0xFF0000FF
+
 
 // COMMAND CODES
 #define CMD_DRIVER_OUTPUT_CTL   0x01
@@ -131,6 +162,7 @@ typedef enum {
 #define CMD_LOAD_WS_OTP   0x31
 #define CMD_WRITE_LUT_REG   0x32
 #define CMD_PROG_OTP_SEL   0x36
+#define CMD_WRITE_OTP_DATA   0x37
 #define CMD_WRITE_USER_ID  0x38
 #define CMD_PROG_OTP_MODE  0x39
 #define CMD_LUT_3F  0x3F
@@ -138,6 +170,8 @@ typedef enum {
 #define CMD_WRITE_RAM_Y_COORDS  0x45
 #define CMD_WRITE_RAM_X_ADDR_CTR  0x4E
 #define CMD_WRITE_RAM_Y_ADDR_CTR  0x4F
+
+
 
 
 // each command has a number of data bytes following it. 
@@ -149,8 +183,11 @@ typedef enum {
 
 void chip_reset(ws29v2_ctx_t *chip);
 
+void cmd_init_hash();
+
 void on_command(ws29v2_ctx_t *chip);
 void on_timer_event(void *data);
+void on_activation_step(void *data);
 void on_reset_timer(void *data);                                        // reset timer expired
 void on_pin_change(void *user_data, pin_t pin, uint32_t value);
 void on_reset_pin_change(void *user_data, pin_t pin, uint32_t value);   // reset pin has changed
@@ -181,6 +218,7 @@ void on_cmd_load_ws_otp(ws29v2_ctx_t *chip);
 void on_cmd_write_lut_reg(ws29v2_ctx_t *chip);
 void on_cmd_prog_otp_sel(ws29v2_ctx_t *chip);
 void on_cmd_write_user_id(ws29v2_ctx_t *chip);
+void on_cmd_write_otp_data(ws29v2_ctx_t *chip);
 void on_cmd_prog_otp_mode(ws29v2_ctx_t *chip);
 void on_cmd_write_ram_x_coords(ws29v2_ctx_t *chip);
 void on_cmd_write_ram_y_coords(ws29v2_ctx_t *chip);
@@ -189,6 +227,8 @@ void on_cmd_write_ram_y_addr_ctr(ws29v2_ctx_t *chip);
 
 void on_cmd_lut_3f(ws29v2_ctx_t *chip);
 
+
+extern uint8_t cmd_data_bytes[];
 
 
 #endif // __WS29V2_H__
