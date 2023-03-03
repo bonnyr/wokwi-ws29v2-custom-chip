@@ -120,7 +120,7 @@ typedef enum {
 
 // timer values
 #define RESET_PULSE_MS 10000
-#define ACTIVATION_STEP_PERIOD 500000
+#define ACTIVATION_STEP_PERIOD 50000
 
 // ADDR INCR modes
 #define ADDR_INCR_X_MASK 0x1
