@@ -6,39 +6,51 @@
     "width": 88.5,
     "height": 38,
   
-    "chips": [{ "id": "chip", "type": "github:bonnyr/wokwi-ws29v2-custom-chip@0.0.0-3" }],
+    "chips": [{ "id": "chip", "type": "github:bonnyr/wokwi-ws29v2-custom-chip@0.0.1" }],
   
     "pins": {
-        "BUSY" : { "x": 4, "y": 13, "target": "chip:BUSY" },
-        "RST": { "x": 4, "y": 15.54, "target": "chip:RST" },
-        "DC": { "x": 4, "y": 18.08, "target": "chip:DC" },
-        "CS": { "x": 4, "y": 20.62, "target": "chip:CS" },
-        "CLK": { "x": 4, "y": 23.18, "target": "chip:CLK" },
-        "DIN": { "x": 4, "y": 25.72, "target": "chip:DIN" },
-        "VCC": { "x": 4, "y": 28.26, "target": "chip:VCC" },
-        "GND": { "x": 4, "y": 30.8, "target": "chip:GND" }
-
-        // "RST": { "x": 4, "y": 14.27, "target": "chip:RST" },
-        // "DC": { "x": 4, "y": 15.54, "target": "chip:DC" },
-        // "CS": { "x": 4, "y": 16.81, "target": "chip:CS" },
-        // "CLK": { "x": 4, "y": 18.08, "target": "chip:CLK" },
-        // "DIN": { "x": 4, "y": 19.35, "target": "chip:DIN" },
-        // "VCC": { "x": 4, "y": 20.62, "target": "chip:VCC" },
-        // "GND": { "x": 4, "y": 21.89, "target": "chip:GND" }
+        "BUSY" : { "x": 4, "y": 10, "target": "chip:BUSY" },
+        "RST": { "x": 4, "y": 12.54, "target": "chip:RST" },
+        "DC": { "x": 4, "y": 15.08, "target": "chip:DC" },
+        "CS": { "x": 4, "y": 17.62, "target": "chip:CS" },
+        "CLK": { "x": 4, "y": 20.18, "target": "chip:CLK" },
+        "DIN": { "x": 4, "y": 22.72, "target": "chip:DIN" },
+        "VCC": { "x": 4, "y": 25.26, "target": "chip:VCC" },
+        "GND": { "x": 4, "y": 27.8, "target": "chip:GND" }
     },
 
     "displays": [
         {
           "id": "chip",
-          "x": 13.5,
-          "y": 3.5,
-          "width": 67.2,
-          "height": 31,
+          "x": 31.9,
+          "y": -15,
+          "rotate": -90,
+          "width": 31,
+          "height": 67.5,
           "pixelWidth": 128,
           "pixelHeight": 296,
           "chip": "ws29v2"
         }
       ]
+
+//[ "chip:VCC", "mega:5V", "red", [ "v-37.24", "h-144", "v652.8", "h218.5" ] ],
+//[ "chip:GND", "mega:GND.2", "black", [ "v-27.64", "h-115.56", "v652.8", "h209.41" ] ],
+//[ "chip:CLK", "mega:52", "orange", [ "v-56.44", "h355.2", "v281.35", "h5.38", "v331.95" ] ],
+//[ "chip:DIN", "mega:51", "blue", [ "v-46.84", "h343.08", "v594.2" ] ],
+//[ "chip:CS", "mega:10", "white", [ "h-0.34", "v-0.11", "h0.34", "v105.71", "h48.3" ] ],
+//[ "chip:DC", "mega:9", "purple", [ "v86.4", "h70.49", "v201" ] ],
+//[ "chip:RST", "mega:8", "gray", [ "v48", "h-86.4", "v115.2", "h173.4" ] ],
+//[ "chip:BUSY", "mega:7", "yellow", [ "v134.4", "h109.6" ] ],
+//[ "mega:GND.1", "led:C", "black", [ "v0" ] ],
+//[ "logic1:D0", "chip:DIN", "blue", [ "v28.8", "h134.4" ] ],
+//[ "logic1:D1", "chip:CLK", "orange", [ "v19.2", "h134.4" ] ],
+//[ "logic1:D2", "chip:CS", "white", [ "v307.2", "h124.8" ] ],
+//[ "logic1:D3", "chip:DC", "purple", [ "v288", "h105.6" ] ],
+//[ "logic1:GND", "mega:GND.2", "black", [ "v48", "h-76.8", "v652.8", "h218.55" ] ],
+//[ "logic1:D7", "mega:5V", "red", [ "v38.4", "h-86.4", "v652.8", "h218.5" ] ],
+//[ "logic1:D4", "chip:RST", "gray", [ "v249.6", "h86.4" ] ]
+
+
   }
 
 

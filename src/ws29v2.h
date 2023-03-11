@@ -24,13 +24,25 @@ typedef enum {
     AM_INV_BW,
     AM_RBW,
     AM_INV_RBW,
+    AM_FADE_1,
+    AM_FADE_2,
+    AM_FADE_3,
+    AM_SCAN_LINE_BW,
+    AM_SCAN_LINE_RBW,
+
 } activation_mode_t;
+
+typedef struct {
+    activation_mode_t *seq;
+    size_t len;
+} act_mode_len_t;
 
 
 typedef struct {
     // attrs
     bool debug;
     uint8_t debug_mask;
+    uint32_t version;
 
     // spi comms
     uint8_t cmd;
@@ -62,10 +74,13 @@ typedef struct {
 
     // display RAM
     uint8_t bw_ram[MAX_DATA_TXFER];
-    uint8_t red_ram[MAX_DATA_TXFER];
+    uint8_t red_ram[MAX_DATA_TXFER];     // v2 only
 
     // activation
+    uint32_t act_mode;
+    act_mode_len_t act_seq;
     uint16_t act_ndx;
+    uint16_t act_scan_ndx;
     uint32_t *black;
     uint32_t *white;
 
@@ -120,7 +135,8 @@ typedef enum {
 
 // timer values
 #define RESET_PULSE_MS 10000
-#define ACTIVATION_STEP_PERIOD 50000
+#define ACTIVATION_STEP_PERIOD 500000
+#define ACTIVATION_SCAN_LINE_PERIOD 500
 
 // ADDR INCR modes
 #define ADDR_INCR_X_MASK 0x1
@@ -143,6 +159,7 @@ typedef enum {
 #define CMD_DRIVER_OUTPUT_CTL   0x01
 #define CMD_GATE_OUTPUT_CTL   0x03
 #define CMD_SRC_OUTPUT_CTL   0x04
+#define CMD_BOOSTER_SOFT_START   0x0C
 #define CMD_DEEP_SLEEP   0x10
 #define CMD_DATA_ENTRY_MODE   0x11
 #define CMD_SW_RESET   0x12
@@ -165,11 +182,15 @@ typedef enum {
 #define CMD_WRITE_OTP_DATA   0x37
 #define CMD_WRITE_USER_ID  0x38
 #define CMD_PROG_OTP_MODE  0x39
+#define CMD_DUMMY_LINE_3A  0x3A
+#define CMD_GATE_WIDTH_3B  0x3B
+#define CMD_BORDER_WF  0x3C
 #define CMD_LUT_3F  0x3F
 #define CMD_WRITE_RAM_X_COORDS  0x44
 #define CMD_WRITE_RAM_Y_COORDS  0x45
 #define CMD_WRITE_RAM_X_ADDR_CTR  0x4E
 #define CMD_WRITE_RAM_Y_ADDR_CTR  0x4F
+#define CMD_NOP  0xFF
 
 
 
@@ -226,9 +247,11 @@ void on_cmd_write_ram_x_addr_ctr(ws29v2_ctx_t *chip);
 void on_cmd_write_ram_y_addr_ctr(ws29v2_ctx_t *chip);
 
 void on_cmd_lut_3f(ws29v2_ctx_t *chip);
+void on_cmd_nop(ws29v2_ctx_t *chip);
 
 
 extern uint8_t cmd_data_bytes[];
+extern act_mode_len_t activation_modes[2][3];
 
 
 #endif // __WS29V2_H__

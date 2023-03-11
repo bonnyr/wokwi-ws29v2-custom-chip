@@ -78,6 +78,9 @@ void chip_reset(ws29v2_ctx_t *chip) {
 
     chip->sleeping = false;
 
+    chip->act_ndx = 0;
+    chip->act_scan_ndx = 0;
+    
     buffer_write(chip->frame_buf, 0, (uint8_t*)chip->black, sizeof(uint32_t) * chip->width * chip->height);
 
     pin_write(chip->busy, LOW);
@@ -92,8 +95,13 @@ static void chip_init_attrs(ws29v2_ctx_t *chip) {
     attr = attr_init("debug_mask", 0xFF);
     chip->debug_mask = attr_read(attr);
 
-    printf("*** ws29v2 chip attributes\n debug: %d\n debug_mask: %d\n",
-           chip->debug, chip->debug_mask);
+    attr = attr_init("version", 1);
+    chip->version = constrain(attr_read(attr), 1, 2);
+    attr = attr_init("act_mode", 0);
+    chip->act_mode = constrain(attr_read(attr), 0, 2);
+
+    printf("*** ws29v2 chip attributes\n debug: %d\n debug_mask: %d\n version: %d",
+           chip->debug, chip->debug_mask, chip->version);
 }
 
 uint32_t *alloc_and_init_fb(size_t sz, uint32_t val) {
@@ -159,6 +167,8 @@ void chip_init() {
     chip->frame_buf = framebuffer_init(&chip->width, &chip->height);
     chip->black = alloc_and_init_fb(chip->width * chip->height, FB_BLACK);
     chip->white = alloc_and_init_fb(chip->width * chip->height, FB_WHITE);
+    chip->act_seq = activation_modes[ chip->version - 1][chip->act_mode];
+    // chip->act_seq_len = chip->version == 1 ? v1_act_seq_len : v2_act_seq_len;
     printf("... framebuf config:\n w: %d, h: %d ...\n", chip->width, chip->height);
 
     chip_reset(chip);

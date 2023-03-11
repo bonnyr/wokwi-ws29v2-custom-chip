@@ -10,7 +10,7 @@
       "top": -354.67,
       "left": 178,
       "rotate": 270,
-      "attrs": { "debug": "1", "debug_mask": "130" }
+      "attrs": { "debug": "1", "debug_mask": "130", "act_mode": "0", "version": "2" }
     },
     {
       "type": "wokwi-logic-analyzer",
