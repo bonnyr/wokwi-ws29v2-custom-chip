@@ -10,14 +10,14 @@
       "top": -354.67,
       "left": 178,
       "rotate": 270,
-      "attrs": { "debug": "1", "debug_mask": "130", "act_mode": "0", "version": "2" }
+      "attrs": { "debug": "1", "debug_mask": "130", "act_mode": "1", "version": "2", "colour":"yellow" }
     },
     {
       "type": "wokwi-logic-analyzer",
       "id": "logic1",
       "top": -408.9,
       "left": -57.41,
-      "attrs": { "triggerMode": "level", "triggerPin": "D7", "triggerLevel": "high" }
+      "attrs": { "triggerMode": "level", "triggerPin": "D7", "triggerLevel": "low" }
     }
   ],
   "connections": [

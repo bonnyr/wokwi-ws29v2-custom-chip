@@ -47,16 +47,12 @@ unsigned long time_now_s;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial.print("e-Paper Demo Starting");
   if (epd.Init() != 0) {
       Serial.print("e-Paper init failed");
       return;
   }
   
-  Serial.println("e-Paper Demo Clearing memory");
-
   epd.ClearFrameMemory(0xFF);   // bit set = white, bit reset = black
-  Serial.println("e-Paper Demo Displaying frame");
   epd.DisplayFrame();
   
   paint.SetRotate(ROTATE_0);
@@ -114,6 +110,19 @@ void setup() {
 }
 
 void loop() {
+
+  /** 
+   *  there are 2 memory areas embedded in the e-paper display
+   *  and once the display is refreshed, the memory area will be auto-toggled,
+   *  i.e. the next action of SetFrameMemory will set the other memory area
+   *  therefore you have to set the frame memory and refresh the display twice.
+   */
+  // epd.SetFrameMemory_Base(IMAGE_DATA);
+  // epd.DisplayFrame();
+
+  // return;
+
+
   // put your main code here, to run repeatedly:
   time_now_s = (millis() - time_start_ms) / 1000;
   char time_string[] = {'0', '0', ':', '0', '0', '\0'};

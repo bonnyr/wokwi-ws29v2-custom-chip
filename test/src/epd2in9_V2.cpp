@@ -95,10 +95,9 @@ int Epd::Init() {
 	
     /* EPD hardware init start */
 	WaitUntilIdle();   
-    Serial.println("Sending sw reset");
 	SendCommand(0x12);  //SWRESET
 	WaitUntilIdle();   
-	
+    
 	SendCommand(0x01); //Driver output control      
 	SendData(0x27);
 	SendData(0x01);
@@ -327,11 +326,9 @@ void Epd::SetFrameMemory_Base(const unsigned char* image_buffer) {
 void Epd::ClearFrameMemory(unsigned char color) {
     SetMemoryArea(0, 0, this->width - 1, this->height - 1);
     SetMemoryPointer(0, 0);
-    Serial.println("Sending Frame Data");
     SendCommand(0x24);
     /* send the color data */
-    Serial.println((this->width / 8) * this->height);
-    for (int i = 0; i < (this->width / 8) * this->height; i++) {
+    for (int i = 0; i < this->width / 8 * this->height; i++) {
         SendData(color);
     }
 }

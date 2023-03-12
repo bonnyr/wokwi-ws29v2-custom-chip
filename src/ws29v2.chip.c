@@ -8,13 +8,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <wchar.h>
 
 #include "ws29v2.h"
-
-// tmp fwds
-void on_spi_done_2(void *user_data, uint8_t *buffer, uint32_t count);
-
 
 void on_timer_event(void *data) {
     ws29v2_ctx_t *chip = (ws29v2_ctx_t *)data;
@@ -67,8 +64,8 @@ void chip_reset(ws29v2_ctx_t *chip) {
 
     chip->disp_upd_seq = DISP_UPDATE_SEQ_POR;
 
-    memset(chip->bw_ram, 0, sizeof(chip->bw_ram));
-    memset(chip->red_ram, 0, sizeof(chip->red_ram));
+    memset(chip->bw_ram, 0xFF, sizeof(chip->bw_ram));
+    memset(chip->colour_ram, 0, sizeof(chip->colour_ram));
 
     chip->spi_state = ST_SPI_WAIT_CMD;
     chip->mode = pin_read(chip->dc);
@@ -87,6 +84,7 @@ void chip_reset(ws29v2_ctx_t *chip) {
     GEN_DEBUGF("*** ws29v2 chip reset done @%lld\n", chip->reset_time);
 }
 
+static uint32_t red_attr, green_attr, blue_attr;
 static void chip_init_attrs(ws29v2_ctx_t *chip) {
     uint32_t attr;
 
@@ -98,10 +96,25 @@ static void chip_init_attrs(ws29v2_ctx_t *chip) {
     attr = attr_init("version", 1);
     chip->version = constrain(attr_read(attr), 1, 2);
     attr = attr_init("act_mode", 0);
-    chip->act_mode = constrain(attr_read(attr), 0, 2);
+    chip->act_mode = constrain(attr_read(attr), 0, 3);
+
+    red_attr = attr_init("red", 255);
+    green_attr = attr_init("green", 255);
+    blue_attr = attr_init("blue", 255);
+
+    string_t colour_attr = attr_string_init("colour");
+    char colour_buf[8]; // sufficient for "red/yellow";
+    string_read(colour_attr, colour_buf, 7);
+    for ( char *p = colour_buf; *p; ++p) *p = tolower(*p);
+    chip->colour = FB_RED;
+    if (!strcmp("yellow", colour_buf)){
+        chip->colour = FB_YELLOW;
+    }
+
+
 
     printf("*** ws29v2 chip attributes\n debug: %d\n debug_mask: %d\n version: %d",
-           chip->debug, chip->debug_mask, chip->version);
+        chip->debug, chip->debug_mask, chip->version);
 }
 
 uint32_t *alloc_and_init_fb(size_t sz, uint32_t val) {
@@ -146,7 +159,7 @@ void chip_init() {
         .mosi = chip->sdi,
         .miso = NO_PIN,
         .mode = 0,
-        .done = on_spi_done_2,
+        .done = on_spi_done,
         .user_data = chip,
     };
     chip->spi = spi_init(&spi_cfg);
@@ -202,52 +215,7 @@ void on_spi_command_byte(ws29v2_ctx_t *chip) {
 void on_spi_done(void *user_data, uint8_t *buffer, uint32_t count) {
     ws29v2_ctx_t *chip = (ws29v2_ctx_t *)user_data;
 
-    // if no bytes transferred or CS has gone high, we're done
-    if (count == 0) {  //|| pin_read(chip->cs) == HIGH) {
-        SPI_DEBUGF("on_spi_done: no bytes received or transaction finished\n");
-        chip->spi_state = ST_SPI_WAIT_CMD;
-        return;
-    }
-
-    bool dc = pin_read(chip->dc);
-
-    if (chip->spi_state == ST_SPI_WAIT_DATA && ! dc) {
-        SPI_DEBUGF("on_spi_done: D/C changed to command state. Processing existing command and data\n");
-        on_command(chip);
-        chip->data_ndx = 0;
-        chip->spi_state = ST_SPI_WAIT_CMD;
-    }
-
-    SPI_DEBUGF("on_spi_done: count: %d, state: %d\n", count, chip->spi_state);
-    switch (chip->spi_state) {
-        case ST_SPI_WAIT_CMD:
-            on_spi_command_byte(chip);
-            break;
-
-        case ST_SPI_WAIT_DATA:
-            SPI_DEBUGF("on_spi_done: transferred %d DATA bytes: (%s)\n", count, debugHexStr(chip->buffer, min(count, 16)));
-
-            chip->data[chip->data_ndx] = chip->buffer[0];
-            chip->data_ndx++;
-
-            if (cmd_data_bytes[chip->cmd] == 0xFF || chip->data_ndx < cmd_data_bytes[chip->cmd]) {
-                break;
-            }
-
-            SPI_DEBUGF("on_spi_done: command 0x%2x data received(%s)\n", chip->cmd, debugHexStr(chip->buffer, min(count, 16)));
-            chip->spi_state = ST_SPI_WAIT_CMD;
-            on_command(chip);
-            chip->data_ndx = 0;
-            break;
-
-        case ST_SPI_DONE:
-            break;
-    }
-}
-
-
-void on_spi_done_2(void *user_data, uint8_t *buffer, uint32_t count) {
-    ws29v2_ctx_t *chip = (ws29v2_ctx_t *)user_data;
+    // chip->colour = 0xFF000000 | attr_read(blue_attr) << 16| attr_read(green_attr) << 8 | attr_read(red_attr) ;
 
     // command byte
     if (chip->mode == 0) {

@@ -63,8 +63,9 @@ The chip defines a number of attributes that can aid in debugging operation when
 | ------------ | ------------------------------------------------------ | ------------------------- |
 | `debug`   | (0 or 1) when set to true, debug logs can be seen in the browser's developer tool window. This can be useful to confirm whether the operation of the program and chip is as expected | `0` |
 | `debug_mask`   | 8 bit mask used to contro various debug aspects:<br> <li> `0x01` pin changes<br> <li> `0x02` SPI comms <br> <li> `0x08` timers<br> <li> `0x80` general chip behaviour | `0` |
-| `version`   | (1 or 2) WS29 board version. V2 is better supported | `1` |
-| `act_mode`   | Activation mode refers to the way the chip implements activation:<br><li>`0` - the default mode, causes the display to update like a full refresh has taken place<br><li>`1` - this activation mode is meant to simulate fading in/out of the display<br><li>`2` - scanline mode refreshes the screen one scanline at a time<br>Note that the display is busy while activation takes place   | `0` |
+| `colour`   | (`red` or `yellow`) ePaper colour when working in 3c mode | `red` |
+| `version`   | (1 or 2) ePaper 2.9" board version. Version 1 is BW, Version 2 supports colour. Version 2 is better supported | `2` |
+| `act_mode`   | Activation mode refers to the way the chip implements activation:<br><li>`0` - the default mode, causes the display to update like a full refresh has taken place<br><li>`1` - this activation mode updates the display with the minimum delay<br><li>`2` - this activation mode is meant to simulate fading in/out of the display<br><li>`3` - scanline mode refreshes the screen one scanline at a time<br>Note that the display is busy while activation takes place   | `0` |
 
 ## Simulator examples
 

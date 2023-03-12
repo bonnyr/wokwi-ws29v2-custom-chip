@@ -22,13 +22,13 @@ typedef enum {
     AM_WHITE,
     AM_BW,
     AM_INV_BW,
-    AM_RBW,
-    AM_INV_RBW,
+    AM_CBW,
+    AM_INV_CBW,
     AM_FADE_1,
     AM_FADE_2,
     AM_FADE_3,
     AM_SCAN_LINE_BW,
-    AM_SCAN_LINE_RBW,
+    AM_SCAN_LINE_CBW,
 
 } activation_mode_t;
 
@@ -74,15 +74,17 @@ typedef struct {
 
     // display RAM
     uint8_t bw_ram[MAX_DATA_TXFER];
-    uint8_t red_ram[MAX_DATA_TXFER];     // v2 only
+    uint8_t colour_ram[MAX_DATA_TXFER];     // v2 only
 
     // activation
     uint32_t act_mode;
-    act_mode_len_t act_seq;
+    act_mode_len_t act_seq;         // config based activation seq
+    act_mode_len_t cur_act_seq;     // currently used activation seq (to allow partial updates)
     uint16_t act_ndx;
     uint16_t act_scan_ndx;
     uint32_t *black;
     uint32_t *white;
+    uint32_t colour;
 
     // otp buffer 
     uint8_t otp[10];
@@ -117,7 +119,6 @@ typedef HASHMAP(uint16_t, cmd_entry_t) cmd_map_t;
 #define CMD_ENTRY(cmd, h) {cmd, #cmd, h}
 
 
-
 typedef enum {
     DA_CLK_EN,
     DA_CLK_DIS,
@@ -150,9 +151,11 @@ typedef enum {
 
 
 // colour constants used when displaying the panel colours using the frame buffer
+// these are represented as ABRG when mapped to uint32_t
 #define FB_BLACK 0x000000FF
 #define FB_WHITE 0xFFFFFFFF
 #define FB_RED 0xFF0000FF
+#define FB_YELLOW 0xFF02A7E6
 
 
 // COMMAND CODES
@@ -167,7 +170,7 @@ typedef enum {
 #define CMD_DISP_UPD_CTL   0x21
 #define CMD_DISP_UPD_CTL2   0x22
 #define CMD_WRITE_RAM_BW   0x24
-#define CMD_WRITE_RAM_RED   0x26
+#define CMD_WRITE_RAM_COLOUR   0x26
 #define CMD_VCOM_SENSE   0x28
 #define CMD_VCOM_SENSE_DUR   0x29
 #define CMD_PROG_VCOM_OTP   0x2A
@@ -226,7 +229,7 @@ void on_cmd_master_activation(ws29v2_ctx_t *chip);
 void on_cmd_disp_upd_ctl(ws29v2_ctx_t *chip);
 void on_cmd_disp_upd_ctl2(ws29v2_ctx_t *chip);
 void on_cmd_write_ram_bw(ws29v2_ctx_t *chip);
-void on_cmd_write_ram_red(ws29v2_ctx_t *chip);
+void on_cmd_write_ram_colour(ws29v2_ctx_t *chip);
 void on_cmd_vcom_sense(ws29v2_ctx_t *chip);
 void on_cmd_vcom_sense_dur(ws29v2_ctx_t *chip);
 void on_cmd_prog_vcom_otp(ws29v2_ctx_t *chip);
@@ -251,7 +254,7 @@ void on_cmd_nop(ws29v2_ctx_t *chip);
 
 
 extern uint8_t cmd_data_bytes[];
-extern act_mode_len_t activation_modes[2][3];
+extern act_mode_len_t activation_modes[2][4];
 
 
 #endif // __WS29V2_H__

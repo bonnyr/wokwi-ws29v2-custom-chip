@@ -32,25 +32,6 @@
           "chip": "ws29v2"
         }
       ]
-
-//[ "chip:VCC", "mega:5V", "red", [ "v-37.24", "h-144", "v652.8", "h218.5" ] ],
-//[ "chip:GND", "mega:GND.2", "black", [ "v-27.64", "h-115.56", "v652.8", "h209.41" ] ],
-//[ "chip:CLK", "mega:52", "orange", [ "v-56.44", "h355.2", "v281.35", "h5.38", "v331.95" ] ],
-//[ "chip:DIN", "mega:51", "blue", [ "v-46.84", "h343.08", "v594.2" ] ],
-//[ "chip:CS", "mega:10", "white", [ "h-0.34", "v-0.11", "h0.34", "v105.71", "h48.3" ] ],
-//[ "chip:DC", "mega:9", "purple", [ "v86.4", "h70.49", "v201" ] ],
-//[ "chip:RST", "mega:8", "gray", [ "v48", "h-86.4", "v115.2", "h173.4" ] ],
-//[ "chip:BUSY", "mega:7", "yellow", [ "v134.4", "h109.6" ] ],
-//[ "mega:GND.1", "led:C", "black", [ "v0" ] ],
-//[ "logic1:D0", "chip:DIN", "blue", [ "v28.8", "h134.4" ] ],
-//[ "logic1:D1", "chip:CLK", "orange", [ "v19.2", "h134.4" ] ],
-//[ "logic1:D2", "chip:CS", "white", [ "v307.2", "h124.8" ] ],
-//[ "logic1:D3", "chip:DC", "purple", [ "v288", "h105.6" ] ],
-//[ "logic1:GND", "mega:GND.2", "black", [ "v48", "h-76.8", "v652.8", "h218.55" ] ],
-//[ "logic1:D7", "mega:5V", "red", [ "v38.4", "h-86.4", "v652.8", "h218.5" ] ],
-//[ "logic1:D4", "chip:RST", "gray", [ "v249.6", "h86.4" ] ]
-
-
   }
 
 

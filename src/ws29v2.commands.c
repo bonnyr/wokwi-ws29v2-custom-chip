@@ -1,9 +1,9 @@
-#include <string.h>
 #include "ws29v2.h"
 
+#include <string.h>
 
-static void display_panel_bw_scanline(ws29v2_ctx_t *chip, uint16_t invert);
-static void display_panel_rbw_scanline(ws29v2_ctx_t *chip, uint16_t invert);
+static void display_panel_bw_scanline(ws29v2_ctx_t *chip, uint8_t invert);
+static void display_panel_colour_scanline(ws29v2_ctx_t *chip, uint8_t invert);
 
 static int cmd_key_compare(const uint16_t *k1, const uint16_t *k2) { return *k1 == *k2 ? 0 : *k1 > *k2 ? 1 : -1; }
 static size_t cmd_key_hash(const uint16_t *k1) { return hashmap_hash_default(k1, sizeof(*k1)); }
@@ -20,7 +20,7 @@ cmd_entry_t cmd_entries[] = {
     CMD_ENTRY(CMD_DISP_UPD_CTL, on_cmd_disp_upd_ctl),
     CMD_ENTRY(CMD_DISP_UPD_CTL2, on_cmd_disp_upd_ctl2),
     CMD_ENTRY(CMD_WRITE_RAM_BW, on_cmd_write_ram_bw),
-    CMD_ENTRY(CMD_WRITE_RAM_RED, on_cmd_write_ram_red),
+    CMD_ENTRY(CMD_WRITE_RAM_COLOUR, on_cmd_write_ram_colour),
     CMD_ENTRY(CMD_VCOM_SENSE, on_cmd_vcom_sense),
     CMD_ENTRY(CMD_VCOM_SENSE_DUR, on_cmd_vcom_sense_dur),
     CMD_ENTRY(CMD_PROG_VCOM_OTP, on_cmd_prog_vcom_otp),
@@ -62,31 +62,34 @@ uint8_t cmd_data_bytes[] = {
 // clang-format on
 
 #define ACT_SEQ_LEN(a) (sizeof(a) / sizeof(a[0]))
+#define AM_IMMEDIATE_UPDATE 1  // the offset of vX_act_seq_immediate
 activation_mode_t v1_act_seq_scanline[] = {AM_BLACK, AM_SCAN_LINE_BW, AM_BW};
 activation_mode_t v1_act_seq[] = {AM_BLACK, AM_FADE_1, AM_FADE_2, AM_FADE_3, AM_BW, AM_FADE_3, AM_FADE_2, AM_FADE_1, AM_BW, AM_BW, AM_BW};
+activation_mode_t v1_act_seq_immediate[] = {AM_BW};
 activation_mode_t v1_act_seq_blink[] = {AM_BLACK, AM_WHITE, AM_BW, AM_BW, AM_INV_BW, AM_BW, AM_BW};
 
-activation_mode_t v2_act_seq[] = {AM_BLACK, AM_WHITE, AM_BW, AM_BW, AM_BW, AM_INV_BW, AM_RBW, AM_INV_RBW, AM_RBW, AM_RBW, AM_RBW, AM_RBW};
-activation_mode_t v2_act_seq_scanline[] = {AM_BLACK, AM_SCAN_LINE_RBW};
+activation_mode_t v2_act_seq[] = {AM_BLACK, AM_WHITE, AM_BW, AM_BW, AM_BW, AM_INV_BW, AM_CBW, AM_INV_CBW, AM_CBW, AM_CBW, AM_CBW, AM_CBW};
+activation_mode_t v2_act_seq_scanline[] = {AM_BLACK, AM_SCAN_LINE_CBW};
+activation_mode_t v2_act_seq_immediate[] = {AM_CBW};
 
-
-act_mode_len_t activation_modes[2][3] = {
+act_mode_len_t activation_modes[2][4] = {
     {
-        { v1_act_seq, ACT_SEQ_LEN(v1_act_seq) },
-        { v1_act_seq_blink, ACT_SEQ_LEN(v1_act_seq_blink) },
-        { v1_act_seq_scanline, ACT_SEQ_LEN(v1_act_seq_scanline) },
+        {v1_act_seq, ACT_SEQ_LEN(v1_act_seq)},
+        {v1_act_seq_immediate, ACT_SEQ_LEN(v1_act_seq_immediate)},
+        {v1_act_seq_blink, ACT_SEQ_LEN(v1_act_seq_blink)},
+        {v1_act_seq_scanline, ACT_SEQ_LEN(v1_act_seq_scanline)},
     },
     {
-        { v2_act_seq, ACT_SEQ_LEN(v2_act_seq) },
-        { v2_act_seq, ACT_SEQ_LEN(v2_act_seq) },
-        { v2_act_seq_scanline, ACT_SEQ_LEN(v2_act_seq_scanline) },
-    }
-};
+        {v2_act_seq, ACT_SEQ_LEN(v2_act_seq)},
+        {v2_act_seq_immediate, ACT_SEQ_LEN(v2_act_seq_immediate)},
+        {v2_act_seq, ACT_SEQ_LEN(v2_act_seq)},
+        {v2_act_seq_scanline, ACT_SEQ_LEN(v2_act_seq_scanline)},
+    }};
 
 static uint32_t RED = FB_RED;
 static uint32_t BLACK = FB_BLACK;
 static uint32_t WHITE = FB_WHITE;
-
+static uint32_t YELLOW = FB_YELLOW;
 
 void cmd_init_hash() {
     cmd_map = calloc(1, sizeof(cmd_map_t));
@@ -98,9 +101,7 @@ void cmd_init_hash() {
     }
 }
 
-
-
-void on_command(ws29v2_ctx_t * chip) {
+void on_command(ws29v2_ctx_t *chip) {
     uint16_t key = chip->cmd;
     cmd_entry_t *e = hashmap_get(cmd_map, &key);
 
@@ -145,40 +146,14 @@ void on_cmd_sw_reset(ws29v2_ctx_t *chip) {
     chip_reset(chip);
 }
 
-
-void display_panel_bw_frame(ws29v2_ctx_t *chip, uint16_t invert) {
+void display_panel_bw_frame(ws29v2_ctx_t *chip, uint8_t invert) {
     GEN_DEBUGF("display_panel_bw_frame: chip: %p - invert: %d\n", chip, invert);
-    do
-    {
+    do {
         display_panel_bw_scanline(chip, invert);
     } while (chip->act_scan_ndx != 0);
-
-    // int pixels_bytes = chip->width * chip->height / 8;
-    // int x = 0, y = 0, w = chip->width;
-    // int c = 0;
-    // for (int i = 0; i < pixels_bytes; i++) {
-    //     uint8_t pixb = chip->bw_ram[i];
-    //     // GEN_DEBUGF("display_panel_bw_frame: setting pixels at y: %d, x: %d, byte: %02x\n", y, x, pixb);
-    //     for (uint8_t b = 0x80; b; b >>= 1) {
-    //         int index = y * w + x;
-    //         bool bit = (pixb & b) ^ invert;
-    //         // GEN_DEBUGF("display_panel_bw_frame: setting pixel at index: %d: y: %d, x: %d, bit: %d\n", index, y, x, bit);
-    //         buffer_write(chip->frame_buf, index * sizeof(uint32_t), (uint8_t *)(bit ? &WHITE : &BLACK), sizeof(uint32_t));
-    //         c++;
-    //         x++;
-    //     }
-
-    //     if (x >= chip->width) {
-    //         x = 0;
-    //         y++;
-    //         if (y >= chip->height) {
-    //             y = 0;
-    //         }
-    //     }
-    // }
 }
 
-static void display_panel_bw_scanline(ws29v2_ctx_t *chip, uint16_t invert) {
+static void display_panel_bw_scanline(ws29v2_ctx_t *chip, uint8_t invert) {
     // GEN_DEBUGF("display_panel_bw_scanline: chip: %p, scanline: %d\n", chip, chip->act_scan_ndx);
     int pixels_bytes = chip->width / 8;
     int row_off = chip->act_scan_ndx * chip->width / 8;
@@ -186,9 +161,11 @@ static void display_panel_bw_scanline(ws29v2_ctx_t *chip, uint16_t invert) {
     int index = chip->act_scan_ndx * chip->width;
     for (int i = 0; i < pixels_bytes; i++) {
         uint8_t pixb = chip->bw_ram[row_off + i];
-        // GEN_DEBUGF("display_panel_bw_frame: setting pixels at y: %d, x: %d, byte: %02x\n", y, x, pixb);
+
+        pixb = invert ? ~pixb : pixb;
+
         for (uint8_t b = 0x80; b; b >>= 1) {
-            bool bit = (pixb & b) ^ invert;
+            bool bit = pixb & b;
             // GEN_DEBUGF("display_panel_bw_frame: setting pixel at index: %d: y: %d, x: %d, bit: %d\n", index, y, x, bit);
             buffer_write(chip->frame_buf, (index + x) * sizeof(uint32_t), (uint8_t *)(bit ? &WHITE : &BLACK), sizeof(uint32_t));
             x++;
@@ -196,7 +173,7 @@ static void display_panel_bw_scanline(ws29v2_ctx_t *chip, uint16_t invert) {
 
         if (x >= chip->width) {
             chip->act_scan_ndx++;
-            if ( chip->act_scan_ndx >= chip->height) {
+            if (chip->act_scan_ndx >= chip->height) {
                 chip->act_scan_ndx = 0;
             }
             break;
@@ -210,22 +187,22 @@ void display_panel_bw_frame_with_fade(ws29v2_ctx_t *chip, uint16_t fade) {
     int x = 0, y = 0, w = chip->width;
     int c = 0;
     uint32_t bf, wf;
-    switch (fade){
-        default:
-        case 1:    // 25%
-            bf = 0x3F3F3FFF;
-            wf = 0xBFBFBFFF;
-            break;
+    switch (fade) {
+    default:
+    case 1:  // 25%
+        bf = 0x3F3F3FFF;
+        wf = 0xBFBFBFFF;
+        break;
 
-        case 2:    // 50%
-            bf = 0x7F7F7FFF;
-            wf = 0x7F7F7FFF;
-            break;
-        
-        case 3:    // 75%
-            bf = 0xBFBFBFFF;
-            wf = 0x3F3F3FFF;
-            break;
+    case 2:  // 50%
+        bf = 0x7F7F7FFF;
+        wf = 0x7F7F7FFF;
+        break;
+
+    case 3:  // 75%
+        bf = 0xBFBFBFFF;
+        wf = 0x3F3F3FFF;
+        break;
     }
     for (int i = 0; i < pixels_bytes; i++) {
         uint8_t pixb = chip->bw_ram[i];
@@ -247,61 +224,35 @@ void display_panel_bw_frame_with_fade(ws29v2_ctx_t *chip, uint16_t fade) {
     }
 }
 
-void display_panel_rbw_frame(ws29v2_ctx_t *chip, uint16_t invert) {
-    GEN_DEBUGF("display_panel_rbw_frame: chip: %p - invert: %d, w:%d, h: %d\n", chip, invert, chip->width, chip->height);
-
-    do
-    {
-        display_panel_rbw_scanline(chip, invert);
+void display_panel_colour_frame(ws29v2_ctx_t *chip, uint16_t invert) {
+    GEN_DEBUGF("display_panel_colour_frame: chip: %p - invert: %d, c: %4x, w:%d, h: %d\n", chip, invert, chip->colour, chip->width, chip->height);
+    do {
+        display_panel_colour_scanline(chip, invert);
     } while (chip->act_scan_ndx != 0);
-        
-
-    // int pixels = chip->width * chip->height / 8;
-    // // int x = chip->x_min, y = chip->y_min, w = chip->width;
-    // int x = 0, y = 0, w = chip->width;
-
-    // int c = 0;
-    // for (int i = 0; i < pixels; i++) {
-    //     uint8_t pixr = chip->red_ram[i];
-    //     uint8_t pixbw = chip->bw_ram[i];
-    //     // GEN_DEBUGF("display_panel_bw_frame: setting pixels at y: %d, x: %d, red: %02x, bw: %02x\n", y, x, pixr, pixbw);
-
-    //     for (uint8_t b = 0x80; b; b >>= 1) {
-    //         int index = y * w + x;
-    //         bool bit = (pixr & b ? 1 : 0) ^ invert;
-    //         uint32_t colour = bit ? RED : (((pixbw & b) ^ invert) ? BLACK : WHITE);
-    //         buffer_write(chip->frame_buf, index * sizeof(uint32_t), (uint8_t *)&colour, sizeof(uint32_t));
-    //         c++;
-    //         x++;
-    //     }
-    //     if (x >= chip->width) {
-    //         x = 0;
-    //         y++;
-    //         if (y >= chip->height) {
-    //             y = 0;
-    //         }
-    //     }
-    // }
 }
 
-static void display_panel_rbw_scanline(ws29v2_ctx_t *chip, uint16_t invert) {
+static void display_panel_colour_scanline(ws29v2_ctx_t *chip, uint8_t invert) {
+    if (!chip->act_scan_ndx) GEN_DEBUGF("display_panel_colour_scanline: chip: %p - invert: %d, c: %4x, w:%d, h: %d\n", chip, invert, chip->colour, chip->width, chip->height);
     int pixels_bytes = chip->width / 8;
     int row_off = chip->act_scan_ndx * chip->width / 8;
     int x = 0;
     int index = chip->act_scan_ndx * chip->width;
     for (int i = 0; i < pixels_bytes; i++) {
-        uint8_t pixr = chip->red_ram[row_off + i];
+        uint8_t pixr = chip->colour_ram[row_off + i];
         uint8_t pixbw = chip->bw_ram[row_off + i];
 
+        pixr = invert ? ~pixr : pixr;
+        pixbw = invert ? ~pixbw : pixbw;
+
         for (uint8_t b = 0x80; b; b >>= 1) {
-            bool bit = (pixr & b ? 1 : 0) ^ invert;
-            uint32_t colour = bit ? RED : (((pixbw & b) ^ invert) ? BLACK : WHITE);
+            // if (!chip->act_scan_ndx) GEN_DEBUGF("display_panel_colour_scanline:    inv: %2x, pixr: %2x, pixbw: %2x, pixr&b: %2x, pixr&b^i: %2x, pixr? %s, pixbw&b: %2x, pixbw&b^i: %2x, pixbw? %s, \n", invert, pixr, pixbw, pixr & b, (pixr & b) ^ invert, ((pixr & b) ^ invert) ? "T" : "F", pixbw & b, (pixbw & b) ^ invert, ((pixbw & b) ^ invert) ? "T" : "F");
+            uint32_t colour = (pixr & b) ? chip->colour : ((pixbw & b) ? WHITE : BLACK);
             buffer_write(chip->frame_buf, (index + x) * sizeof(uint32_t), (uint8_t *)&colour, sizeof(uint32_t));
             x++;
         }
         if (x >= chip->width) {
             chip->act_scan_ndx++;
-            if ( chip->act_scan_ndx >= chip->height) {
+            if (chip->act_scan_ndx >= chip->height) {
                 chip->act_scan_ndx = 0;
             }
             break;
@@ -309,21 +260,17 @@ static void display_panel_rbw_scanline(ws29v2_ctx_t *chip, uint16_t invert) {
     }
 }
 
-
 void display_panel_fixed_frame(ws29v2_ctx_t *chip, int pixels, uint32_t value) {
     for (int i = 0; i < pixels; i++) {
         buffer_write(chip->frame_buf, i * sizeof(uint32_t), (uint8_t *)(&value), sizeof(uint32_t));
     }
 }
 
-
 void on_activation_step(void *data) {
     ws29v2_ctx_t *chip = data;
 
-    // GEN_DEBUGF("on_activation_step: step: %d, %p, w:%d, h: %d - %ld\n", chip->act_ndx, chip, chip->width, chip->height, sizeof(uint32_t) * chip->width * chip->height);
-
     // if we got to the end, release the busy signal
-    if (chip->act_ndx >= chip->act_seq.len) {
+    if (chip->act_ndx >= chip->cur_act_seq.len) {
         GEN_DEBUGF("on_activation_step: resetting busy\n");
 
         chip->act_ndx = 0;
@@ -339,53 +286,55 @@ void on_activation_step(void *data) {
     uint32_t timerPeriod = ACTIVATION_STEP_PERIOD;
     int stepInc = 1;
 
+    if (!chip->act_scan_ndx) GEN_DEBUGF("on_activation_step: step: %d, %d\n", chip->act_ndx, chip->cur_act_seq.seq[chip->act_ndx]);
+
     // set display based on step
-    switch (chip->act_seq.seq[chip->act_ndx]) {
-        case AM_BLACK:
-            // display_panel_fixed_frame(chip, chip->width * chip->height, FB_BLACK);
-            buffer_write(chip->frame_buf, 0, (uint8_t *)chip->black, sizeof(uint32_t) * chip->width * chip->height);
-            break;
-        case AM_WHITE:
-            // display_panel_fixed_frame(chip, chip->width * chip->height, FB_WHITE);
-            buffer_write(chip->frame_buf, 0, (uint8_t *)chip->white, sizeof(uint32_t) * chip->width * chip->height);
-            break;
-        case AM_BW:
-            display_panel_bw_frame(chip, 0);
-            break;
-        case AM_INV_BW:
-            display_panel_bw_frame(chip, 0xFF);
-            break;
-        case AM_RBW:
-            display_panel_rbw_frame(chip, 0);
-            break;
-        case AM_INV_RBW:
-            display_panel_rbw_frame(chip, 0xFF);
-            break;
-        case AM_FADE_1:
-            display_panel_bw_frame_with_fade(chip, 1);
-            break;
-        case AM_FADE_2:
-            display_panel_bw_frame_with_fade(chip, 2);
-            break;
-        case AM_FADE_3:
-            display_panel_bw_frame_with_fade(chip, 3);
-            break;
-        case AM_SCAN_LINE_BW:
-            display_panel_bw_scanline(chip, 0);
-            if (chip->act_scan_ndx > 0) {
-                timerPeriod = ACTIVATION_SCAN_LINE_PERIOD;
-                stepInc = 0;
-            }
-            break;
-        case AM_SCAN_LINE_RBW:
-            display_panel_rbw_scanline(chip, 0);
-            if (chip->act_scan_ndx > 0) {
-                timerPeriod = ACTIVATION_SCAN_LINE_PERIOD;
-                stepInc = 0;
-            }
-            break;
-   default:
-            break;
+    switch (chip->cur_act_seq.seq[chip->act_ndx]) {
+    case AM_BLACK:
+        // display_panel_fixed_frame(chip, chip->width * chip->height, FB_BLACK);
+        buffer_write(chip->frame_buf, 0, (uint8_t *)chip->black, sizeof(uint32_t) * chip->width * chip->height);
+        break;
+    case AM_WHITE:
+        // display_panel_fixed_frame(chip, chip->width * chip->height, FB_WHITE);
+        buffer_write(chip->frame_buf, 0, (uint8_t *)chip->white, sizeof(uint32_t) * chip->width * chip->height);
+        break;
+    case AM_BW:
+        display_panel_bw_frame(chip, 0x0);
+        break;
+    case AM_INV_BW:
+        display_panel_bw_frame(chip, 0xFF);
+        break;
+    case AM_CBW:
+        display_panel_colour_frame(chip, 0x0);
+        break;
+    case AM_INV_CBW:
+        display_panel_colour_frame(chip, 0xFF);
+        break;
+    case AM_FADE_1:
+        display_panel_bw_frame_with_fade(chip, 1);
+        break;
+    case AM_FADE_2:
+        display_panel_bw_frame_with_fade(chip, 2);
+        break;
+    case AM_FADE_3:
+        display_panel_bw_frame_with_fade(chip, 3);
+        break;
+    case AM_SCAN_LINE_BW:
+        display_panel_bw_scanline(chip, 0x0);
+        if (chip->act_scan_ndx > 0) {
+            timerPeriod = ACTIVATION_SCAN_LINE_PERIOD;
+            stepInc = 0;
+        }
+        break;
+    case AM_SCAN_LINE_CBW:
+        display_panel_colour_scanline(chip, 0x00);
+        if (chip->act_scan_ndx > 0) {
+            timerPeriod = ACTIVATION_SCAN_LINE_PERIOD;
+            stepInc = 0;
+        }
+        break;
+    default:
+        break;
     }
 
     chip->act_ndx += stepInc;
@@ -396,16 +345,30 @@ void on_activation_step(void *data) {
 
 void on_cmd_master_activation(ws29v2_ctx_t *chip) {
     chip->act_ndx = 0;
+    chip->act_scan_ndx = 0;
+
+    switch (chip->disp_upd_seq) {
+    default:
+    case 0xC7:
+        chip->cur_act_seq = chip->act_seq;
+        break;
+    case 0xC0:
+    case 0x0F:
+        chip->cur_act_seq = activation_modes[chip->version - 1][AM_IMMEDIATE_UPDATE];
+        break;
+    }
+
     on_activation_step(chip);
 }
 
 void on_cmd_disp_upd_ctl(ws29v2_ctx_t *chip) {
 }
 void on_cmd_disp_upd_ctl2(ws29v2_ctx_t *chip) {
+    chip->disp_upd_seq = chip->data[0];
 }
 
 void write_ram_byte(ws29v2_ctx_t *chip, uint8_t *buf, int i) {
-    int off =  (chip->y_addr * chip->width + chip->x_addr) / 8;
+    int off = (chip->y_addr * chip->width + chip->x_addr) / 8;
     // GEN_DEBUGF("write_ram_byte: writing at offset %p -> %p,  %d (%d) x: %d, y: %d\n",buf, buf + off, off, i, chip->x_addr, chip->y_addr);
     buf[off] = chip->data[i];
     chip->x_addr += 8;
@@ -428,11 +391,11 @@ void on_cmd_write_ram_bw(ws29v2_ctx_t *chip) {
     // DBG_BUFFER("on_cmd_write_ram_bw: ram contents ", chip->bw_ram, 4736, 16);
 }
 
-void on_cmd_write_ram_red(ws29v2_ctx_t *chip) {
-    GEN_DEBUGF("on_cmd_write_ram_red: copying %d bytes to ram ... ", chip->data_ndx);
+void on_cmd_write_ram_colour(ws29v2_ctx_t *chip) {
+    GEN_DEBUGF("on_cmd_write_ram_colour: copying %d bytes to ram ... ", chip->data_ndx);
 
     for (int i = 0; i < chip->data_ndx; i++) {
-        write_ram_byte(chip, chip->red_ram, i);
+        write_ram_byte(chip, chip->colour_ram, i);
     }
 
     GEN_DEBUGF("x_addr: %d, y_addr: %d\n", chip->x_addr, chip->y_addr);
