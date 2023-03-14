@@ -65,7 +65,7 @@ void chip_reset(ws29v2_ctx_t *chip) {
     chip->disp_upd_seq = DISP_UPDATE_SEQ_POR;
 
     memset(chip->bw_ram, 0xFF, sizeof(chip->bw_ram));
-    memset(chip->colour_ram, 0, sizeof(chip->colour_ram));
+    memset(chip->color_ram, 0, sizeof(chip->color_ram));
 
     chip->spi_state = ST_SPI_WAIT_CMD;
     chip->mode = pin_read(chip->dc);
@@ -90,31 +90,31 @@ static void chip_init_attrs(ws29v2_ctx_t *chip) {
 
     attr = attr_init("debug", 0);
     chip->debug = attr_read(attr) != 0;
-    attr = attr_init("debug_mask", 0xFF);
-    chip->debug_mask = attr_read(attr);
+    attr = attr_init("debugMask", 0xFF);
+    chip->debugMask = attr_read(attr);
 
-    attr = attr_init("version", 1);
+    attr = attr_init("version", 2);
     chip->version = constrain(attr_read(attr), 1, 2);
-    attr = attr_init("act_mode", 0);
-    chip->act_mode = constrain(attr_read(attr), 0, 3);
+    attr = attr_init("actMode", 0);
+    chip->actMode = constrain(attr_read(attr), 0, 3);
 
     red_attr = attr_init("red", 255);
     green_attr = attr_init("green", 255);
     blue_attr = attr_init("blue", 255);
 
-    string_t colour_attr = attr_string_init("colour");
-    char colour_buf[8]; // sufficient for "red/yellow";
-    string_read(colour_attr, colour_buf, 7);
-    for ( char *p = colour_buf; *p; ++p) *p = tolower(*p);
-    chip->colour = FB_RED;
-    if (!strcmp("yellow", colour_buf)){
-        chip->colour = FB_YELLOW;
+    string_t color_attr = attr_string_init("color");
+    char color_buf[8]; // sufficient for "red/yellow";
+    string_read(color_attr, color_buf, 7);
+    for ( char *p = color_buf; *p; ++p) *p = tolower(*p);
+    chip->color = FB_RED;
+    if (!strcmp("yellow", color_buf)){
+        chip->color = FB_YELLOW;
     }
 
 
 
-    printf("*** ws29v2 chip attributes\n debug: %d\n debug_mask: %d\n version: %d",
-        chip->debug, chip->debug_mask, chip->version);
+    printf("*** ws29v2 chip attributes\n debug: %d\n debugMask: %2X\n version: %d, color: %08X\n",
+        chip->debug, chip->debugMask, chip->version, chip->color);
 }
 
 uint32_t *alloc_and_init_fb(size_t sz, uint32_t val) {
@@ -180,7 +180,7 @@ void chip_init() {
     chip->frame_buf = framebuffer_init(&chip->width, &chip->height);
     chip->black = alloc_and_init_fb(chip->width * chip->height, FB_BLACK);
     chip->white = alloc_and_init_fb(chip->width * chip->height, FB_WHITE);
-    chip->act_seq = activation_modes[ chip->version - 1][chip->act_mode];
+    chip->act_seq = activation_modes[ chip->version - 1][chip->actMode];
     // chip->act_seq_len = chip->version == 1 ? v1_act_seq_len : v2_act_seq_len;
     printf("... framebuf config:\n w: %d, h: %d ...\n", chip->width, chip->height);
 
@@ -215,7 +215,7 @@ void on_spi_command_byte(ws29v2_ctx_t *chip) {
 void on_spi_done(void *user_data, uint8_t *buffer, uint32_t count) {
     ws29v2_ctx_t *chip = (ws29v2_ctx_t *)user_data;
 
-    // chip->colour = 0xFF000000 | attr_read(blue_attr) << 16| attr_read(green_attr) << 8 | attr_read(red_attr) ;
+    // chip->color = 0xFF000000 | attr_read(blue_attr) << 16| attr_read(green_attr) << 8 | attr_read(red_attr) ;
 
     // command byte
     if (chip->mode == 0) {

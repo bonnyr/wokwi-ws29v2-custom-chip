@@ -48,7 +48,7 @@
 
 #define DEBUGF_PFX(mask, pfx, ...)                   \
     {                                                \
-        if (chip->debug && ((chip->debug_mask & (mask)) == (mask))) {                           \
+        if (chip->debug && ((chip->debugMask & (mask)) == (mask))) {                           \
             printf("%lld %s", get_sim_nanos() / 1000, pfx); \
             printf(__VA_ARGS__);                     \
         }                                            \

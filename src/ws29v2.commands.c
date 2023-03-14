@@ -3,7 +3,7 @@
 #include <string.h>
 
 static void display_panel_bw_scanline(ws29v2_ctx_t *chip, uint8_t invert);
-static void display_panel_colour_scanline(ws29v2_ctx_t *chip, uint8_t invert);
+static void display_panel_color_scanline(ws29v2_ctx_t *chip, uint8_t invert);
 
 static int cmd_key_compare(const uint16_t *k1, const uint16_t *k2) { return *k1 == *k2 ? 0 : *k1 > *k2 ? 1 : -1; }
 static size_t cmd_key_hash(const uint16_t *k1) { return hashmap_hash_default(k1, sizeof(*k1)); }
@@ -20,7 +20,7 @@ cmd_entry_t cmd_entries[] = {
     CMD_ENTRY(CMD_DISP_UPD_CTL, on_cmd_disp_upd_ctl),
     CMD_ENTRY(CMD_DISP_UPD_CTL2, on_cmd_disp_upd_ctl2),
     CMD_ENTRY(CMD_WRITE_RAM_BW, on_cmd_write_ram_bw),
-    CMD_ENTRY(CMD_WRITE_RAM_COLOUR, on_cmd_write_ram_colour),
+    CMD_ENTRY(CMD_WRITE_RAM_COLOR, on_cmd_write_ram_color),
     CMD_ENTRY(CMD_VCOM_SENSE, on_cmd_vcom_sense),
     CMD_ENTRY(CMD_VCOM_SENSE_DUR, on_cmd_vcom_sense_dur),
     CMD_ENTRY(CMD_PROG_VCOM_OTP, on_cmd_prog_vcom_otp),
@@ -72,7 +72,7 @@ activation_mode_t v2_act_seq[] = {AM_BLACK, AM_WHITE, AM_BW, AM_BW, AM_BW, AM_IN
 activation_mode_t v2_act_seq_scanline[] = {AM_BLACK, AM_SCAN_LINE_CBW};
 activation_mode_t v2_act_seq_immediate[] = {AM_CBW};
 
-act_mode_len_t activation_modes[2][4] = {
+actMode_len_t activation_modes[2][4] = {
     {
         {v1_act_seq, ACT_SEQ_LEN(v1_act_seq)},
         {v1_act_seq_immediate, ACT_SEQ_LEN(v1_act_seq_immediate)},
@@ -224,30 +224,30 @@ void display_panel_bw_frame_with_fade(ws29v2_ctx_t *chip, uint16_t fade) {
     }
 }
 
-void display_panel_colour_frame(ws29v2_ctx_t *chip, uint16_t invert) {
-    GEN_DEBUGF("display_panel_colour_frame: chip: %p - invert: %d, c: %4x, w:%d, h: %d\n", chip, invert, chip->colour, chip->width, chip->height);
+void display_panel_color_frame(ws29v2_ctx_t *chip, uint16_t invert) {
+    GEN_DEBUGF("display_panel_color_frame: chip: %p - invert: %d, c: %4x, w:%d, h: %d\n", chip, invert, chip->color, chip->width, chip->height);
     do {
-        display_panel_colour_scanline(chip, invert);
+        display_panel_color_scanline(chip, invert);
     } while (chip->act_scan_ndx != 0);
 }
 
-static void display_panel_colour_scanline(ws29v2_ctx_t *chip, uint8_t invert) {
-    if (!chip->act_scan_ndx) GEN_DEBUGF("display_panel_colour_scanline: chip: %p - invert: %d, c: %4x, w:%d, h: %d\n", chip, invert, chip->colour, chip->width, chip->height);
+static void display_panel_color_scanline(ws29v2_ctx_t *chip, uint8_t invert) {
+    if (!chip->act_scan_ndx) GEN_DEBUGF("display_panel_color_scanline: chip: %p - invert: %d, c: %4x, w:%d, h: %d\n", chip, invert, chip->color, chip->width, chip->height);
     int pixels_bytes = chip->width / 8;
     int row_off = chip->act_scan_ndx * chip->width / 8;
     int x = 0;
     int index = chip->act_scan_ndx * chip->width;
     for (int i = 0; i < pixels_bytes; i++) {
-        uint8_t pixr = chip->colour_ram[row_off + i];
+        uint8_t pixr = chip->color_ram[row_off + i];
         uint8_t pixbw = chip->bw_ram[row_off + i];
 
         pixr = invert ? ~pixr : pixr;
         pixbw = invert ? ~pixbw : pixbw;
 
         for (uint8_t b = 0x80; b; b >>= 1) {
-            // if (!chip->act_scan_ndx) GEN_DEBUGF("display_panel_colour_scanline:    inv: %2x, pixr: %2x, pixbw: %2x, pixr&b: %2x, pixr&b^i: %2x, pixr? %s, pixbw&b: %2x, pixbw&b^i: %2x, pixbw? %s, \n", invert, pixr, pixbw, pixr & b, (pixr & b) ^ invert, ((pixr & b) ^ invert) ? "T" : "F", pixbw & b, (pixbw & b) ^ invert, ((pixbw & b) ^ invert) ? "T" : "F");
-            uint32_t colour = (pixr & b) ? chip->colour : ((pixbw & b) ? WHITE : BLACK);
-            buffer_write(chip->frame_buf, (index + x) * sizeof(uint32_t), (uint8_t *)&colour, sizeof(uint32_t));
+            // if (!chip->act_scan_ndx) GEN_DEBUGF("display_panel_color_scanline:    inv: %2x, pixr: %2x, pixbw: %2x, pixr&b: %2x, pixr&b^i: %2x, pixr? %s, pixbw&b: %2x, pixbw&b^i: %2x, pixbw? %s, \n", invert, pixr, pixbw, pixr & b, (pixr & b) ^ invert, ((pixr & b) ^ invert) ? "T" : "F", pixbw & b, (pixbw & b) ^ invert, ((pixbw & b) ^ invert) ? "T" : "F");
+            uint32_t color = (pixr & b) ? chip->color : ((pixbw & b) ? WHITE : BLACK);
+            buffer_write(chip->frame_buf, (index + x) * sizeof(uint32_t), (uint8_t *)&color, sizeof(uint32_t));
             x++;
         }
         if (x >= chip->width) {
@@ -305,10 +305,10 @@ void on_activation_step(void *data) {
         display_panel_bw_frame(chip, 0xFF);
         break;
     case AM_CBW:
-        display_panel_colour_frame(chip, 0x0);
+        display_panel_color_frame(chip, 0x0);
         break;
     case AM_INV_CBW:
-        display_panel_colour_frame(chip, 0xFF);
+        display_panel_color_frame(chip, 0xFF);
         break;
     case AM_FADE_1:
         display_panel_bw_frame_with_fade(chip, 1);
@@ -327,7 +327,7 @@ void on_activation_step(void *data) {
         }
         break;
     case AM_SCAN_LINE_CBW:
-        display_panel_colour_scanline(chip, 0x00);
+        display_panel_color_scanline(chip, 0x00);
         if (chip->act_scan_ndx > 0) {
             timerPeriod = ACTIVATION_SCAN_LINE_PERIOD;
             stepInc = 0;
@@ -391,11 +391,11 @@ void on_cmd_write_ram_bw(ws29v2_ctx_t *chip) {
     // DBG_BUFFER("on_cmd_write_ram_bw: ram contents ", chip->bw_ram, 4736, 16);
 }
 
-void on_cmd_write_ram_colour(ws29v2_ctx_t *chip) {
-    GEN_DEBUGF("on_cmd_write_ram_colour: copying %d bytes to ram ... ", chip->data_ndx);
+void on_cmd_write_ram_color(ws29v2_ctx_t *chip) {
+    GEN_DEBUGF("on_cmd_write_ram_color: copying %d bytes to ram ... ", chip->data_ndx);
 
     for (int i = 0; i < chip->data_ndx; i++) {
-        write_ram_byte(chip, chip->colour_ram, i);
+        write_ram_byte(chip, chip->color_ram, i);
     }
 
     GEN_DEBUGF("x_addr: %d, y_addr: %d\n", chip->x_addr, chip->y_addr);
