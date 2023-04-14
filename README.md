@@ -1,7 +1,7 @@
 
 # Waveshare 2.9" ePaper display Custom Chip 
 
-- [todo - link to image](./ws29v2.png)
+<img src="ws29v2.png"/>
 - [chip data sheet](https://www.waveshare.com/w/upload/7/79/2.9inch-e-paper-v2-specification.pdf)
 
 The WS29v2 Custom Chip simulates the Waveshare 2.9" (V2) ePaper display module. 
@@ -69,4 +69,4 @@ The chip defines a number of attributes that can aid in debugging operation when
 
 ## Simulator examples
 
-- [Waveshare 2.9" Custom Chip](https://wokwi.com/projects/348856116302578258)
+- [Waveshare 2.9" Custom Chip](https://wokwi.com/projects/359124046635125761)
